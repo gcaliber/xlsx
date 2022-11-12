@@ -13,7 +13,7 @@ const
   XLSX_TMP = "xlsx_windx_tmp"
 
 type
-  XlsxError* = object of Exception
+  XlsxError* = object of CatchableError
   NotExistsXlsxFileError* = object of XlsxError
   InvalidXlsxFileError* = object of XlsxError
   NotFoundSheetError* = object of XlsxError
@@ -80,7 +80,7 @@ when defined(windows):
 
 proc extractXml*(src: string, dest: string = getTempDir() / XLSX_TMP) {.inline.} =
   ## extract xml file from excel using zip
-  if not existsFile(src):
+  if not fileExists(src):
     raise newException(NotExistsXlsxFileError, "No such xlsx file: " & src)
   try:
     extractAll(src, dest)
@@ -91,7 +91,7 @@ template checkIndex(cond: untyped, msg = "") =
   when compileOption("boundChecks"):
     {.line.}:
       if not cond:
-        raise newException(IndexError, msg)
+        raise newException(IndexDefect, msg)
 
 template `=?=`(a, b: string): bool =
   cmpIgnoreCase(a, b) == 0
@@ -692,10 +692,10 @@ proc parseRowMetaData(x: var XmlParser, s: SheetInfo, styles: Styles): (int, She
           value = x.parseSheetDate
           let dur = value.dvalue
           if s.date1904:
-            value.dvalue = $(initDateTime(1, mJan, 1904, 0, 0, 0, local()) +
+            value.dvalue = $(dateTime(1904, mJan, 1) +
                 toDuration(dur))
           else:
-            value.dvalue = $(initDateTime(30, mDec, 1899, 0, 0, 0, local()) +
+            value.dvalue = $(dateTime(1899, mDec, 30) +
                 toDuration(dur))
       of xmlElementEnd:
         if x.elementName =?= "c":
@@ -714,8 +714,8 @@ proc parseRowMetaData(x: var XmlParser, s: SheetInfo, styles: Styles): (int, She
           let
             originTime = parseFloat(value.tvalue) * 24 * 3600
             durTime = initDuration(seconds = int(originTime)).toParts
-            durDateTime = initDateTime(1, mJan, 2020,
-                durTime[Hours], durTime[Minutes], durTime[Seconds], local())
+            durDateTime = dateTime(2020, mJan, 1,
+                durTime[Hours], durTime[Minutes], durTime[Seconds])
           value.tvalue = $(durDateTime.format("HH:mm:ss"))
       of xmlElementEnd:
         if x.elementName =?= "c":
