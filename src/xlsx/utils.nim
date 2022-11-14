@@ -84,6 +84,7 @@ proc extractXml*(src: string, dest: string = TempDir) {.inline.} =
   ## default path is TempDir.
   if not existsFile(src):
     raise newException(NotExistsXlsxFileError, "No such xlsx file: " & src)
+  removeDir(TempDir)
   try:
     extractAll(src, dest)
   except:
